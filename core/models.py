@@ -52,3 +52,52 @@ class BlogPost(models.Model):
     def __str__(self):
         return self.title
 
+
+class Stock(models.Model):
+    ticker = models.CharField(max_length=10, unique=True)
+
+    class Meta:
+        db_table = 'stock'
+        app_label = 'core'
+
+    def __str__(self):
+        return self.ticker
+
+
+class StockRevenues(models.Model):
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    value = models.IntegerField()
+
+    class Meta:
+        db_table = 'revenue'
+        app_label = 'core'
+
+    def __str__(self):
+        return '% % %'.format(self.ticker, self.year, self.value)
+
+
+class StockEbitda(models.Model):
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    value = models.IntegerField()
+
+    class Meta:
+        db_table = 'ebitda'
+        app_label = 'core'
+
+    def __str__(self):
+        return '% % %'.format(self.stock, self.year, self.value)
+
+
+class StockEps(models.Model):
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
+    date = models.DateField()
+    value = models.FloatField()
+
+    class Meta:
+        db_table = 'eps'
+        app_label = 'core'
+
+    def __str__(self):
+        return '% % %'.format(self.ticker, str(self.date), self.value)
