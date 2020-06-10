@@ -90,19 +90,8 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
 
     def list(self, request):
         result = []
-        # tickers = ['A', 'AAPL', 'ABMD', 'ABT', 'ADBE', 'ADM', 'ADP', 'AJG', 'AKAM', 'ALGN', 'ALXN', 'AMAT', 'AMD',
-        #            'AME', 'AMGN', 'ANSS', 'APD', 'APH', 'AVGO', 'BAX', 'BF-B', 'BIIB', 'BKNG', 'BMY', 'BR', 'CAT',
-        #            'CBRE', 'CDNS', 'CERN', 'CHRW', 'CME', 'CMG', 'CNC', 'COP', 'CPRT', 'CSCO', 'CSGP', 'CSX', 'CTAS',
-        #            'CTSH', 'DGX', 'DHR', 'DVA', 'DXCM', 'EA', 'EBAY', 'ECL', 'EL', 'EOG', 'EQIX', 'EW', 'EXPD', 'FAST',
-        #            'FDS', 'FICO', 'FIS', 'FISV', 'FMC', 'FOXA', 'FTNT', 'GD', 'GILD', 'GLW', 'GOOG', 'GPN', 'GWW',
-        #            'HAS', 'HEI', 'HON', 'IAC', 'ICE', 'IEX', 'IFF', 'ILMN', 'INTC', 'INTU', 'IR', 'ISRG', 'ITW', 'J',
-        #            'JKHY', 'JNJ', 'KLAC', 'KSU', 'LHX', 'LMT', 'LRCX', 'LVS', 'LYB', 'MA', 'MASI', 'MCO', 'MGM', 'MMC',
-        #            'MMM', 'MNST', 'MOH', 'MPWR', 'MSFT', 'MTD', 'MU', 'MXIM', 'NBIX', 'NDAQ', 'NDSN', 'NEM', 'NKE',
-        #            'NOC', 'NTAP', 'NVDA', 'ODFL', 'OKE', 'PAYX', 'PCAR', 'PKG', 'PKI', 'PODD', 'PPG', 'QCOM', 'REGN',
-        #            'RMD', 'ROK', 'RPM', 'SCCO', 'SPGI', 'SSNC', 'SWKS', 'SYK', 'TDY', 'TER', 'TFX', 'TIF', 'TJX', 'TMO',
-        #            'TTWO', 'TXN', 'TYL', 'ULTA', 'UPS', 'V', 'VAR', 'VFC', 'VIAC', 'VMC', 'VRTX', 'VZ', 'WCN', 'WM',
-        #            'WST', 'WY', 'XLNX', 'XRAY', 'ZBH']
         stocks = Stock.objects.all()
+        print('scrap!!!')
         for stock in stocks:
             print(stock)
             revenues = self.revenues(stock)
@@ -125,7 +114,6 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
                 eps_list.append(StockEps(stock=stock, date=x['date'], value=x['eps']))
             # StockEps.objects.bulk_create(eps_list)
 
-        print('HELLO MAKE SCRAP')
         return Response(result)
 
 

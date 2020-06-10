@@ -74,7 +74,7 @@ class StockRevenues(models.Model):
         app_label = 'core'
 
     def __str__(self):
-        return '% % %'.format(self.ticker, self.year, self.value)
+        return '% % %'.format(self.stock, self.year, self.value)
 
 
 class StockEbitda(models.Model):
@@ -100,4 +100,4 @@ class StockEps(models.Model):
         app_label = 'core'
 
     def __str__(self):
-        return '% % %'.format(self.ticker, str(self.date), self.value)
+        return '% % %'.format(self.stock, str(self.date), self.value)
