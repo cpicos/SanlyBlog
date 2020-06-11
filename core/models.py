@@ -64,40 +64,25 @@ class Stock(models.Model):
         return self.ticker
 
 
-class StockRevenues(models.Model):
-    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    value = models.IntegerField()
-
-    class Meta:
-        db_table = 'revenue'
-        app_label = 'core'
-
-    def __str__(self):
-        return '% % %'.format(self.stock, self.year, self.value)
-
-
-class StockEbitda(models.Model):
-    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    value = models.IntegerField()
-
-    class Meta:
-        db_table = 'ebitda'
-        app_label = 'core'
-
-    def __str__(self):
-        return '% % %'.format(self.stock, self.year, self.value)
-
-
-class StockEps(models.Model):
+class StockValuation(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     date = models.DateField()
-    value = models.FloatField()
+    roe = models.FloatField(null=True)
+    roi = models.FloatField(null=True)
+    roa = models.FloatField(null=True)
+    net_profit_margin = models.FloatField(null=True)
+    gross_margin = models.FloatField(null=True)
+    operating_margin = models.FloatField(null=True)
+    ebitda_margin = models.FloatField(null=True)
+    current_ratio = models.FloatField(null=True)
+    debt_to_equity = models.FloatField(null=True)
+    eps = models.FloatField(null=True)
+    pe_ratio = models.FloatField(null=True)
 
     class Meta:
-        db_table = 'eps'
+        db_table = 'stock_valuation'
         app_label = 'core'
 
     def __str__(self):
-        return '% % %'.format(self.stock, str(self.date), self.value)
+        return self.stock
+
