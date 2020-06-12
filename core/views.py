@@ -66,6 +66,7 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
                 date = tds[0]
                 margin = tds[1]
                 margin = margin.get_text().replace('$', '')
+                margin = margin.replace(',', '')
                 if len(margin) > 0:
                     result.append({'date': date.get_text(), 'eps': margin})
         return result
