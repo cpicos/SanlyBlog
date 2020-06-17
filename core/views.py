@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from django.views.generic import TemplateView
 import bs4 as bs
 import urllib.request
 from itertools import groupby
@@ -48,7 +49,12 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
                     margin = tds[3]
                     margin = margin.get_text().replace('%', '')
                     if len(margin) > 0:
-                        result.append({'date': date.get_text(), margin_type: margin})
+                        if margin_type == 'eps_ttm':
+                            x = x.replace('$', '')
+                            x = x.replace(',', '')
+                            result.append({'date': date.get_text(), margin_type: x})
+                        else:
+                            result.append({'date': date.get_text(), margin_type: margin})
         return result
 
     @staticmethod
@@ -111,13 +117,15 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
         url = 'https://www.macrotrends.net/stocks/charts/{}/x/pe-ratio'.format(stock)
         return self._scrap_margins(url, 'pe_ratio')
 
-    def eps(self, stock):
-        url = 'https://www.macrotrends.net/stocks/charts/{}/x/eps-earnings-per-share-diluted'.format(stock)
-        return self._scrap_eps(url)
+    def eps_ttm(self, stock):
+        url = 'https://www.macrotrends.net/stocks/charts/{}/x/pe-ratio'.format(stock)
+        return self._scrap_margins(url, 'eps_ttm')
 
     def list(self, request):
         result = []
-        stocks = Stock.objects.all()
+        start = int(request.GET.get('start', 0))
+        end = int(request.GET.get('end', 0))
+        stocks = Stock.objects.all()[start:end]
         for stock in stocks:
             print(stock)
             roe_data = self.roe(stock)
@@ -130,10 +138,10 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
             current_ratio = self.current_ratio(stock)
             debt_to_equity = self.debt_to_equity(stock)
             pe_ratio = self.pe_ratio(stock)
-            eps = self.eps(stock)
+            eps_ttm = self.eps_ttm(stock)
 
             lst = roe_data + roi_data + roa_data + current_ratio + net_profit_margin + debt_to_equity + gross_margin \
-                + operating_margin + ebitda_margin + pe_ratio + eps
+                + operating_margin + ebitda_margin + pe_ratio + eps_ttm
             lst.sort(key=lambda d: d['date'])
 
             lines = []
@@ -157,3 +165,6 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
 #     def list(self, request):
 #         serializer = StockSerializer(Stock.objects.all(), many=True)
 #         return Response(serializer.data)
+
+class GenerateScrap(TemplateView):
+    template_name = "generate_scrap.html"

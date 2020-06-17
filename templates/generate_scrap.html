@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Scrap (Only Admin)</title>
+</head>
+<body>
+<div id="app">
+    Hello generate scrap (for the blog use nuxt, for admin simple templates)
+    <button @click="MakeScrap">Make Scrap</button>
+</div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+<script>
+    axios.defaults.xsrfCookieName = 'csrftoken';
+    axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+</script>
+<script>
+    var app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        methods:{
+            async MakeScrap(){
+                // let total_stocks = 6548;
+                let total_stocks = 3600;
+                var start = 3500;
+                var end = 3500;
+                var increments = 25;
+                while (end < total_stocks){
+                    start = end;
+                    end += increments;
+                    let response = await axios.get(`http://127.0.0.1:8000/api/macro-scrap/?start=${start}&end=${end}`);
+                    console.log(response, start, end);
+                }
+            },
+        },
+    })
+</script>
+</html>

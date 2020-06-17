@@ -76,7 +76,7 @@ class StockValuation(models.Model):
     ebitda_margin = models.FloatField(null=True)
     current_ratio = models.FloatField(null=True)
     debt_to_equity = models.FloatField(null=True)
-    eps = models.FloatField(null=True)
+    eps_ttm = models.FloatField(null=True)
     pe_ratio = models.FloatField(null=True)
 
     class Meta:
