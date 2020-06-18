@@ -78,11 +78,14 @@ class StockValuation(models.Model):
     debt_to_equity = models.FloatField(null=True)
     eps_ttm = models.FloatField(null=True)
     pe_ratio = models.FloatField(null=True)
+    eps3y_cagr = models.FloatField(null=True)
+    eps_start = models.FloatField(null=True)
+    price = models.FloatField(null=True)
 
     class Meta:
         db_table = 'stock_valuation'
         app_label = 'core'
 
     def __str__(self):
-        return self.stock
+        return self.stock.ticker
 

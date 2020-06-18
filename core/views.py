@@ -1,9 +1,13 @@
+from warnings import catch_warnings
+
 from rest_framework import viewsets
 from rest_framework.response import Response
 from django.views.generic import TemplateView
 import bs4 as bs
 import urllib.request
 from itertools import groupby
+from dateutil.relativedelta import relativedelta
+import math
 from .serializers import AuthorSerializer, TagSerializer, CategorySerializer, BlogPostSerializer
 from .models import Author, Tag, Category, BlogPost, Stock, StockValuation
 
@@ -53,6 +57,11 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
                             x = x.replace('$', '')
                             x = x.replace(',', '')
                             result.append({'date': date.get_text(), margin_type: x})
+                        elif margin_type == 'price':
+                            price = tds[1]
+                            price = price.get_text().replace('$', '')
+                            price = price.replace(',', '')
+                            result.append({'date': date.get_text(), margin_type: price})
                         else:
                             result.append({'date': date.get_text(), margin_type: margin})
         return result
@@ -121,6 +130,15 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
         url = 'https://www.macrotrends.net/stocks/charts/{}/x/pe-ratio'.format(stock)
         return self._scrap_margins(url, 'eps_ttm')
 
+    def eps(self, stock):
+
+        url = 'https://www.macrotrends.net/stocks/charts/{}/x/eps-earnings-per-share-diluted'.format(stock)
+        return self._scrap_eps(url)
+
+    def price(self, stock):
+        url = 'https://www.macrotrends.net/stocks/charts/{}/x/pe-ratio'.format(stock)
+        return self._scrap_margins(url, 'price')
+
     def list(self, request):
         result = []
         start = int(request.GET.get('start', 0))
@@ -139,9 +157,10 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
             debt_to_equity = self.debt_to_equity(stock)
             pe_ratio = self.pe_ratio(stock)
             eps_ttm = self.eps_ttm(stock)
+            price = self.price(stock)
 
             lst = roe_data + roi_data + roa_data + current_ratio + net_profit_margin + debt_to_equity + gross_margin \
-                + operating_margin + ebitda_margin + pe_ratio + eps_ttm
+                + operating_margin + ebitda_margin + pe_ratio + eps_ttm + price
             lst.sort(key=lambda d: d['date'])
 
             lines = []
@@ -158,6 +177,34 @@ class MacroTrendScrapViewSet(viewsets.ViewSet):
                 lines.append(StockValuation(**res_dict))
 
             StockValuation.objects.bulk_create(lines)
+        return Response(result)
+
+
+class Eps3yCagrViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        result = []
+        stocks = Stock.objects.all()
+        for stock in stocks:
+            # try:
+            valuation = StockValuation.objects.filter(stock_id=stock.id, eps_ttm__gt=0).order_by('-date')
+            dates_eps = valuation.values('id', 'date', 'eps_ttm')
+            for data in dates_eps:
+                mrqrtr = data.get('date')  # most recent quarter
+                start_period_date = mrqrtr - relativedelta(months=33)  # last 12 quarters, 11 prev + 1 current
+                end_eps = data.get('eps_ttm')
+                if valuation.filter(date=start_period_date, eps_ttm__gt=0).exists():
+                    start_eps = valuation.get(date=start_period_date).eps_ttm
+                    cagr = (math.pow(end_eps / start_eps, 1 / 3) - 1) * 100
+                else:
+                    start_eps = None
+                    cagr = None
+
+                x = StockValuation.objects.get(id=data.get('id'))
+                x.eps3y_cagr = cagr
+                x.eps_start = start_eps
+                x.save()
+                print(stock)
         return Response(result)
 
 
