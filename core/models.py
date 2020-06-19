@@ -54,7 +54,7 @@ class BlogPost(models.Model):
 
 
 class Stock(models.Model):
-    ticker = models.CharField(max_length=10, unique=True)
+    ticker = models.CharField(max_length=20, unique=True)
 
     class Meta:
         db_table = 'stock'
