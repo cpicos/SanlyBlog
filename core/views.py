@@ -8,8 +8,14 @@ import urllib.request
 from itertools import groupby
 from dateutil.relativedelta import relativedelta
 import math
-from .serializers import AuthorSerializer, TagSerializer, CategorySerializer, BlogPostSerializer
+from .serializers import AuthorSerializer, TagSerializer, CategorySerializer, BlogPostSerializer, \
+    StockValuationSerializer
 from .models import Author, Tag, Category, BlogPost, Stock, StockValuation
+import numpy as np
+import pandas_datareader.data as web
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import time
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
@@ -208,10 +214,68 @@ class Eps3yCagrViewSet(viewsets.ViewSet):
         return Response(result)
 
 
-# class StockFairValueViewSet(viewsets.ViewSet):
-#     def list(self, request):
-#         serializer = StockSerializer(Stock.objects.all(), many=True)
-#         return Response(serializer.data)
+class SltPortfolioViewSet(viewsets.ViewSet):
+    def list(self, request):
+        result = []
+        stocks = StockValuation.objects.filter(roe__gte=15, roi__gte=10, roa__gte=5, net_profit_margin__gte=10,
+                                               current_ratio__gte=1.2, pe_ratio__lte=25)\
+                               .extra(where=["pe_ratio < eps3y_cagr"]).order_by('stock__ticker', 'date')
+
+        serializer = StockValuationSerializer(stocks, many=True)
+        for x in serializer.data:
+            if x['mof'] >= 30:
+                result.append(x)
+            else:
+                pass
+        print(len(result))
+        return Response(result)
+
 
 class GenerateScrap(TemplateView):
     template_name = "generate_scrap.html"
+
+
+class TestFinance(viewsets.ViewSet):
+
+    def list(self, request):
+        result = []
+        # tickers = Stock.objects.all().values_list('ticker', flat=True)[:5]
+        # start = '2000-01-01'
+        # end = '2020-12-31'
+        # df = pd.concat([web.DataReader('BIIB', 'yahoo', start, end) for ticker in tickers]).reset_index()
+        # print(df)
+        # https://www.nasdaq.com/market-activity/stocks/screener?exchange=nasdaq&letter=0&render=download
+        # https://www.nasdaq.com/market-activity/stocks/screener?exchange=nyse&letter=0&render=download
+        # ftp://ftp.nasdaqtrader.com/symboldirectory
+        # https://pypi.org/project/Yahoo-ticker-downloader/
+
+        # df = pd.concat([web.DataReader(ticker,'morningstar', start, end) for ticker in tickers]).reset_index()
+        # ts_log = np.round(sp500['Close'])
+        # sp500['42d'] = ts_log.rolling(42).mean()
+        # sp500['252d'] = ts_log.rolling(252).mean()
+        # sp500['42d-252d'] = sp500['42d'] - sp500['252d']
+
+        # GOOD ONLY FOR INDEXES
+        # SD = 50
+        # sp500['Regime'] = np.where(sp500['42d-252d'] > SD, 1, 0)
+        # sp500['Regime'] = np.where(sp500['42d-252d'] < SD, -1, sp500['Regime'])
+        # sp500['Regime'].value_counts()
+        # sp500['Market'] = np.log(sp500['Close'] / sp500['Close'].shift(1))
+        # sp500['Strategy'] = sp500['Regime'].shift(1) * sp500['Market']
+        #
+        i = 0
+        for stock in Stock.objects.all().values_list('ticker', flat=True):
+            if stock not in ['BHGE']:
+                try:
+                    sp500 = web.DataReader(stock, data_source='yahoo', start='2000-01-01', end='2020-12-31')
+                    sp500['Symbol'] = stock
+                    # print(stock)
+                    # print(sp500[['Adj Close', 'Close', 'Symbol']])
+                except Exception as err:
+                    print(stock, err)
+            i += 1
+            if i == 30:
+                time.sleep(30)
+                i = 0
+        print('END !!!!!')
+        return Response(result)
