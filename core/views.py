@@ -287,6 +287,7 @@ class TestFinance(viewsets.ViewSet):
                                     start=price_date.date(), end=price_date.date())
             frame.at[index, 'Real Price'] = round(prices.iloc[0]['Close'], 2)
 
+        frame.to_csv(r'C:\Users\Omar\Desktop\SLTPortFolioProfit.csv', index=False)
         print(frame.tail())
         print('END !!!!!')
         return Response(result)
