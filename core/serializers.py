@@ -65,5 +65,8 @@ class StockValuationSerializer(serializers.ModelSerializer):
         return result
 
     def get_mof(self, obj):
-        result = ((self.get_value_price(obj) / obj.price) - 1) * 100
+        result = 0.00
+        if obj.price and self.get_value_price(obj):
+            result = ((self.get_value_price(obj) / obj.price) - 1) * 100
+
         return result

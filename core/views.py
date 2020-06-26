@@ -12,10 +12,13 @@ from .serializers import AuthorSerializer, TagSerializer, CategorySerializer, Bl
     StockValuationSerializer
 from .models import Author, Tag, Category, BlogPost, Stock, StockValuation
 import numpy as np
+import pandas as pd
 import pandas_datareader.data as web
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
+import json
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
@@ -216,19 +219,43 @@ class Eps3yCagrViewSet(viewsets.ViewSet):
 
 class SltPortfolioViewSet(viewsets.ViewSet):
     def list(self, request):
-        result = []
-        stocks = StockValuation.objects.filter(roe__gte=15, roi__gte=10, roa__gte=5, net_profit_margin__gte=10,
-                                               current_ratio__gte=1.2, pe_ratio__lte=25)\
-                               .extra(where=["pe_ratio < eps3y_cagr"]).order_by('stock__ticker', 'date')
+        start = datetime.now()
+        # stocks = StockValuation.objects.filter(roe__gte=15, roi__gte=10, roa__gte=5, net_profit_margin__gte=10,
+        #                                        current_ratio__gte=1.2, pe_ratio__lte=25)\
+        #          .order_by('stock__ticker', 'date')
+        stocks = StockValuation.objects.all().values('stock__ticker', 'date', 'roe', 'roi', 'roa', 'net_profit_margin',
+                                                     'gross_margin', 'operating_margin', 'ebitda_margin',
+                                                     'current_ratio', 'debt_to_equity', 'eps_ttm', 'pe_ratio',
+                                                     'eps3y_cagr', 'eps_start', 'price')
+        df = pd.DataFrame(stocks)
+        # CONDITIONS, FILTERS df[df['columns'] = condition ]
+        df_gt25 = df[df['eps3y_cagr'] > 25]
+        df_gt25['value_price'] = round(df_gt25['eps_ttm'] * 25, 2)
 
-        serializer = StockValuationSerializer(stocks, many=True)
-        for x in serializer.data:
-            if x['mof'] >= 30:
-                result.append(x)
-            else:
-                pass
-        print(len(result))
-        return Response(result)
+        df_lt25 = df[df['eps3y_cagr'] <= 25]
+        df_lt25['value_price'] = round(df_lt25['eps_ttm'] * df_lt25['eps3y_cagr'], 2)
+
+        # MERGE FRAMES
+        frames = [df_gt25, df_lt25]
+        result = pd.concat(frames)
+        result['mof'] = round(((result['value_price'] / result['price']) - 1) * 100, 2)
+        result['eps3y_cagr'] = round(result['eps3y_cagr'])
+
+        # Convert pandas date
+        result["date"] = pd.to_datetime(result["date"]).dt.strftime("%Y-%m-%d")
+
+        # VALUATION FILTER
+        result = result[result['pe_ratio'] < result['eps3y_cagr']]
+
+        # result.to_csv(r'C:\Users\Omar\Desktop\SLTPortFolio.csv', index=False)
+        # rule sell after 1 year holding for the last positition
+
+        # FUNCTIONS
+        print(result.describe())
+        end = datetime.now()
+        print('ELAPSED TIME', end - start)
+        out = result.to_json(orient='records')
+        return Response([])
 
 
 class GenerateScrap(TemplateView):
