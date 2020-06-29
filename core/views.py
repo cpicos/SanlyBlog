@@ -255,7 +255,7 @@ class SltPortfolioViewSet(viewsets.ViewSet):
         result['eps3y_cagr'] = round(result['eps3y_cagr'])
 
         # Convert pandas date
-        result["date"] = pd.to_datetime(result["date"]).dt.strftime("%Y-%m-%d")
+        # result["date"] = pd.to_datetime(result["date"]).dt.strftime("%Y-%m-%d")
 
         # VALUATION FILTER
         result = result[(result['pe_ratio'] < result['eps3y_cagr']) & (result['mof'] >= 30)]
@@ -271,23 +271,49 @@ class GenerateScrap(TemplateView):
 
 class TestFinance(viewsets.ViewSet):
 
+    # def validate_date(self, x_date):
+    #     price_date = x_date
+    #     if price_date.weekday() not in [0, 1, 2, 3, 4]:
+    #         if price_date.weekday() == 5:
+    #             price_date = price_date - relativedelta(days=1)
+    #         elif price_date.weekday() == 6:
+    #             price_date = price_date - relativedelta(days=2)
+    #     else:
+    #         price_date = datetime(price_date.year, price_date.month, 28)
+    #     return price_date
+
     def list(self, request):
         result = []
         frame = SltPortfolioViewSet.slt_valuation()
+        years = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+        for year in years:
+            x = datetime.strptime('{}-01-01'.format(year), '%Y-%m-%d')
+            y = datetime.strptime('{}-12-31'.format(year), '%Y-%m-%d')
+            frame_filtered = frame[(frame['date'] >= x.date()) & (frame['date'] <= y.date())]
 
-        for index, row in frame.tail().iterrows():
-            price_date = datetime.strptime(row['date'], '%Y-%m-%d')
-            if price_date.weekday() not in [0, 1, 2, 3, 4]:
-                if price_date.weekday() == 5:
-                    price_date = price_date - relativedelta(days=1)
-                elif price_date.weekday() == 6:
-                    price_date = price_date - relativedelta(days=2)
+            for index, row in frame_filtered.iterrows():
+                # price_date = datetime.strptime(row['date'], '%Y-%m-%d')
+                # price_date = self.validate_date()
+                end_price_date = row['date'] + relativedelta(years=1)
 
-            prices = web.DataReader(row['stock__ticker'], data_source='yahoo',
-                                    start=price_date.date(), end=price_date.date())
-            frame.at[index, 'Real Price'] = round(prices.iloc[0]['Close'], 2)
+                try:
+                    prices = web.DataReader(row['stock__ticker'], data_source='yahoo',
+                                            start=(row['date'] - relativedelta(months=1)), end=row['date'])
+                    end_prices = web.DataReader(row['stock__ticker'], data_source='yahoo',
+                                                start=(end_price_date - relativedelta(months=1)), end=end_price_date)
 
-        frame.to_csv(r'C:\Users\Omar\Desktop\SLTPortFolioProfit.csv', index=False)
-        print(frame.tail())
+                    real_price = round(prices.iloc[-1]['Close'], 2)
+                    sell_price = round(end_prices.iloc[-1]['Close'], 2)
+                    profit = round(((sell_price/real_price) - 1) * 100, 2)
+                    frame_filtered.at[index, 'Real Price'] = real_price
+                    frame_filtered.at[index, 'Sell End Price'] = sell_price
+                    frame_filtered.at[index, 'Profit %'] = profit
+                    frame_filtered.at[index, 'Money'] = 50 * round((profit/100), 2)
+                except Exception as err:
+                    frame_filtered.at[index, 'Real Price'] = None
+                    frame_filtered.at[index, 'Sell End Price'] = None
+
+            frame_filtered.to_csv(r'C:\Users\Trabajo\Desktop\SLTPortFolioProfit{}.csv'.format(year), index=False)
+            print(year, 'READY')
         print('END !!!!!')
         return Response(result)
