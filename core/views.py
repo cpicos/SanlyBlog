@@ -228,17 +228,21 @@ class SltPortfolioViewSet(viewsets.ViewSet):
     def slt_valuation():
         start = datetime.now()
         stocks = StockValuation.objects.filter(roe__gte=15, roi__gte=10, roa__gte=5, net_profit_margin__gte=10,
-                                               current_ratio__gte=1.2, pe_ratio__lte=25).values('stock__ticker', 'date',
-                                                                                                'roe', 'roi', 'roa',
-                                                                                                'net_profit_margin',
-                                                                                                'gross_margin',
-                                                                                                'operating_margin',
-                                                                                                'ebitda_margin',
-                                                                                                'current_ratio',
-                                                                                                'debt_to_equity',
-                                                                                                'eps_ttm', 'pe_ratio',
-                                                                                                'eps3y_cagr',
-                                                                                                'eps_start', 'price') \
+                                               current_ratio__gte=1.3, pe_ratio__range=[9, 25]).values('stock__ticker',
+                                                                                                       'date',
+                                                                                                       'roe', 'roi',
+                                                                                                       'roa',
+                                                                                                       'net_profit_margin',
+                                                                                                       'gross_margin',
+                                                                                                       'operating_margin',
+                                                                                                       'ebitda_margin',
+                                                                                                       'current_ratio',
+                                                                                                       'debt_to_equity',
+                                                                                                       'eps_ttm',
+                                                                                                       'pe_ratio',
+                                                                                                       'eps3y_cagr',
+                                                                                                       'eps_start',
+                                                                                                       'price') \
             .order_by('stock__ticker', 'date')
         df = pd.DataFrame(stocks)
         # CONDITIONS, FILTERS df[df['columns'] = condition ]
@@ -271,36 +275,24 @@ class GenerateScrap(TemplateView):
 
 class TestFinance(viewsets.ViewSet):
 
-    # def validate_date(self, x_date):
-    #     price_date = x_date
-    #     if price_date.weekday() not in [0, 1, 2, 3, 4]:
-    #         if price_date.weekday() == 5:
-    #             price_date = price_date - relativedelta(days=1)
-    #         elif price_date.weekday() == 6:
-    #             price_date = price_date - relativedelta(days=2)
-    #     else:
-    #         price_date = datetime(price_date.year, price_date.month, 28)
-    #     return price_date
-
     def list(self, request):
         result = []
         frame = SltPortfolioViewSet.slt_valuation()
-        years = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+        # years = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+        years = ['2020']
         for year in years:
             x = datetime.strptime('{}-01-01'.format(year), '%Y-%m-%d')
             y = datetime.strptime('{}-12-31'.format(year), '%Y-%m-%d')
             frame_filtered = frame[(frame['date'] >= x.date()) & (frame['date'] <= y.date())]
 
             for index, row in frame_filtered.iterrows():
-                # price_date = datetime.strptime(row['date'], '%Y-%m-%d')
-                # price_date = self.validate_date()
                 end_price_date = row['date'] + relativedelta(years=1)
 
                 try:
                     prices = web.DataReader(row['stock__ticker'], data_source='yahoo',
-                                            start=(row['date'] - relativedelta(months=1)), end=row['date'])
+                                            start=(row['date'] - relativedelta(years=1)), end=row['date'])
                     end_prices = web.DataReader(row['stock__ticker'], data_source='yahoo',
-                                                start=(end_price_date - relativedelta(months=1)), end=end_price_date)
+                                                start=(end_price_date - relativedelta(years=1)), end=end_price_date)
 
                     real_price = round(prices.iloc[-1]['Close'], 2)
                     sell_price = round(end_prices.iloc[-1]['Close'], 2)
@@ -313,7 +305,7 @@ class TestFinance(viewsets.ViewSet):
                     frame_filtered.at[index, 'Real Price'] = None
                     frame_filtered.at[index, 'Sell End Price'] = None
 
-            frame_filtered.to_csv(r'C:\Users\Trabajo\Desktop\SLTPortFolioProfit{}.csv'.format(year), index=False)
+            frame_filtered.to_csv(r'C:\Users\Omar\Desktop\SLT\SLTPortFolioProfit{}.csv'.format(year), index=False)
             print(year, 'READY')
         print('END !!!!!')
         return Response(result)
